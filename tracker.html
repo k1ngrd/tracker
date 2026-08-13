@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Arcade Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0d0715;
+    --panel: #17101f;
+    --panel-border: #2c2038;
+    --purple: #8a6dff;
+    --purple-glow: rgba(138,109,255,0.45);
+    --pink: #ff3d7f;
+    --pink-glow: rgba(255,61,127,0.45);
+    --text: #e9e3f5;
+    --text-dim: #a89bc4;
+    --yellow: #ffcf4d;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    padding:24px 16px 60px;
+  }
+  .wrap{max-width:960px;margin:0 auto;position:relative;z-index:1;}
+  .pixel{font-family:'Press Start 2P', monospace;}
+
+  /* Header */
+  .header-top{
+    display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;
+    border-bottom:1px dashed var(--panel-border);
+    padding-bottom:18px;margin-bottom:24px;
+  }
+  .badges{
+    display:flex;gap:10px;margin-right:60px;flex-wrap:wrap;
+  }
+  .kicker{
+    font-size:10px;color:var(--pink);letter-spacing:2px;margin-bottom:10px;
+    text-shadow:0 0 8px var(--pink-glow);
+  }
+  h1{
+    font-size:28px;margin:0;color:#fff;
+    text-shadow:0 0 12px var(--purple-glow), 0 0 24px var(--pink-glow);
+    letter-spacing:2px;
+  }
+  .date-badge{
+    background:var(--panel);border:1px solid var(--panel-border);
+    padding:10px 14px;border-radius:8px;font-size:12px;color:var(--text-dim);
+    height:fit-content;white-space:nowrap;
+  }
+  .date-badge b{color:#fff;}
+
+  /* Countdown cards */
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;}
+  @media(max-width:640px){.cards{grid-template-columns:1fr;}}
+  .card{
+    background:var(--panel);border:1px solid var(--panel-border);border-radius:14px;
+    padding:18px 20px;
+  }
+  .card-title{
+    font-size:12px;display:flex;align-items:center;gap:8px;margin-bottom:14px;letter-spacing:1px;
+  }
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+  .dot-purple{background:var(--purple);box-shadow:0 0 8px var(--purple-glow);}
+  .dot-pink{background:var(--pink);box-shadow:0 0 8px var(--pink-glow);}
+  .title-purple{color:var(--purple);}
+  .title-pink{color:var(--pink);}
+  .timer-row{display:flex;gap:10px;margin-bottom:12px;}
+  .timer-box{
+    flex:1;text-align:center;padding:12px 4px;border-radius:8px;font-size:20px;
+  }
+  .timer-purple{background:rgba(138,109,255,0.12);border:1px solid rgba(138,109,255,0.4);color:var(--purple);}
+  .timer-pink{background:rgba(255,61,127,0.12);border:1px solid rgba(255,61,127,0.4);color:var(--pink);}
+  .timer-unit{font-size:10px;display:block;margin-top:4px;color:var(--text-dim);}
+  .card-sub{font-size:11px;color:var(--text-dim);line-height:1.6;}
+  .card-sub b{color:var(--text);}
+
+  /* Table */
+  .table-wrap{
+    background:var(--panel);border:1px solid var(--panel-border);border-radius:14px;
+    overflow-x:auto;margin-bottom:20px;
+  }
+  table{border-collapse:collapse;width:100%;min-width:760px;}
+  thead tr.group-row th{
+    font-size:11px;letter-spacing:1px;padding:10px 6px;text-align:center;
+    border-right:1px solid #1a1225;
+    position:relative;
+  }
+  thead tr.group-row th:last-child{border-right:none;}
+  .grp-foxy{background:rgba(138,109,255,0.18);color:var(--purple);}
+  .grp-anniv{background:rgba(255,61,127,0.18);color:var(--pink);}
+  .grp-label{display:inline-flex;align-items:center;gap:8px;}
+  .add-event-btn{
+    background:rgba(255,255,255,0.08);border:1px solid currentColor;color:inherit;
+    width:16px;height:16px;border-radius:4px;cursor:pointer;font-size:11px;line-height:1;
+    display:inline-flex;align-items:center;justify-content:center;padding:0;
+  }
+  .add-event-btn:hover{background:rgba(255,255,255,0.2);}
+  .col-label-wrap{display:inline-flex;align-items:center;gap:3px;}
+  .col-label{cursor:pointer;border-bottom:1px dotted transparent;}
+  .col-label:hover{border-bottom:1px dotted currentColor;}
+  .reorder-btn{
+    background:none;border:none;color:#5c4f74;cursor:pointer;font-size:10px;padding:0 1px;line-height:1;
+  }
+  .reorder-btn:hover:not(:disabled){color:#fff;}
+  .reorder-btn:disabled{opacity:0.25;cursor:default;}
+  .remove-event-btn{
+    background:none;border:none;color:#5c4f74;cursor:pointer;font-size:10px;padding:0;line-height:1;
+  }
+  .remove-event-btn:hover{color:var(--pink);}
+  thead tr.col-row th{
+    font-size:10px;color:var(--text-dim);padding:8px 6px;text-align:center;
+    border-top:1px solid var(--panel-border);
+    border-bottom:1px solid var(--panel-border);
+    border-right:1px solid #221933;
+    font-weight:600;
+  }
+  thead tr.col-row th:last-child{border-right:none;}
+  thead tr.col-row th.name-col, thead tr.col-row th.set-col{text-align:left;}
+  tbody td{
+    padding:14px 10px;text-align:center;border-bottom:1px solid #221933;font-size:13px;
+    border-right:1px solid #221933;vertical-align:middle;height:48px;
+  }
+  tbody td:last-child{border-right:none;}
+  tbody tr:last-child td{border-bottom:1px solid var(--panel-border);}
+  .name-input{
+    background:transparent;border:none;border-bottom:1px solid transparent;color:#fff;
+    font-family:inherit;font-size:13px;width:130px;padding:4px 2px;
+  }
+  .name-input:focus{outline:none;border-bottom:1px solid var(--purple);}
+  .set-cell{display:flex;align-items:center;gap:6px;justify-content:flex-start;white-space:nowrap;}
+  .set-badge{
+    background:var(--yellow);color:#241a00;font-weight:700;font-size:11px;
+    padding:3px 8px;border-radius:5px;min-width:20px;text-align:center;
+  }
+  .set-btn{
+    background:#221933;border:1px solid var(--panel-border);color:var(--text-dim);
+    width:20px;height:20px;border-radius:5px;cursor:pointer;font-size:12px;line-height:1;
+  }
+  .set-btn:hover{color:#fff;border-color:var(--purple);}
+  input[type=checkbox]{
+    width:20px;height:20px;cursor:pointer;accent-color:var(--purple);
+  }
+  td.anniv-check input[type=checkbox]{accent-color:var(--pink);}
+  .del-btn{
+    background:none;border:none;color:#665a80;cursor:pointer;font-size:14px;
+  }
+  .del-btn:hover{color:var(--pink);}
+
+  .add-row{
+    display:flex;justify-content:center;padding:14px;
+  }
+  .add-btn{
+    background:rgba(138,109,255,0.14);border:1px solid var(--purple);color:var(--purple);
+    padding:8px 18px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;
+  }
+  .add-btn:hover{background:rgba(138,109,255,0.28);}
+
+  .footer-note{
+    font-size:11px;color:var(--text-dim);line-height:1.7;
+    border-top:1px dashed var(--panel-border);padding-top:16px;
+  }
+  .footer-note b{color:var(--text);}
+  .footer-note .fx{color:var(--purple);font-weight:700;}
+  .footer-note .an{color:var(--pink);font-weight:700;}
+  .footer-note .st{color:var(--yellow);font-weight:700;}
+
+  .status{font-size:11px;color:var(--text-dim);text-align:center;margin-bottom:14px;min-height:14px;}
+
+  .toolbar{
+    display:flex;justify-content:flex-end;gap:10px;margin-bottom:18px;flex-wrap:wrap;
+  }
+  .tool-btn{
+    background:var(--panel);border:1px solid var(--panel-border);color:var(--text-dim);
+    padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:11px;
+    display:flex;align-items:center;gap:6px;
+  }
+  .tool-btn:hover{color:#fff;border-color:var(--purple);}
+  .tool-btn.export:hover{border-color:var(--yellow);color:var(--yellow);}
+  input[type=file]{display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header-top">
+    <div>
+      <div class="kicker pixel">◆ CONTEÚDOS DIÁRIOS &amp; SEMANAIS ◆</div>
+      <h1 class="pixel">ARCADE TRACKER</h1>
+    </div>
+    <div class="badges">
+      <div class="date-badge">Hoje · <b id="todayLabel">--/--/----</b></div>
+      <div class="date-badge">🕒 <b id="clockLabel">--:--:--</b></div>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-title pixel title-purple"><span class="dot dot-purple"></span>FOXY RESETA EM</div>
+      <div class="timer-row">
+        <div class="timer-box timer-purple pixel"><span id="foxy-d">0d</span></div>
+        <div class="timer-box timer-purple pixel"><span id="foxy-h">00h</span></div>
+        <div class="timer-box timer-purple pixel"><span id="foxy-m">00m</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title pixel title-pink"><span class="dot dot-pink"></span>ANIVERSÁRIO RESETA EM</div>
+      <div class="timer-row">
+        <div class="timer-box timer-pink pixel"><span id="anniv-h">00h</span></div>
+        <div class="timer-box timer-pink pixel"><span id="anniv-m">00m</span></div>
+        <div class="timer-box timer-pink pixel"><span id="anniv-s">00s</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="tool-btn export" id="exportBtn">⬇ Exportar Dados</button>
+    <button class="tool-btn" id="importBtn">⬆ Importar Backup</button>
+    <input type="file" id="importFile" accept="application/json">
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead id="tableHead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="add-row"><button class="add-btn" id="addBtn">+ adicionar pessoa</button></div>
+  </div>
+
+
+
+</div>
+
+<script>
+const DEFAULT_FOXY_EVENTS = [
+  { id:'quiz', label:'Quiz' },
+  { id:'count', label:'Count' },
+  { id:'memory', label:'Memory' },
+];
+const DEFAULT_ANNIV_EVENTS = [
+  { id:'math', label:'Math' },
+  { id:'parry', label:'Parry' },
+  { id:'mole', label:'Mole' },
+  { id:'shooting', label:'Shooting' },
+  { id:'pacman', label:'Pac Man' },
+];
+const STORAGE_KEY = 'arcade-tracker-state-v1';
+
+// Detecta se está rodando dentro do Claude.ai (window.storage disponível) ou como
+// arquivo local baixado — nesse caso usa localStorage do navegador como alternativa.
+const hasCloudStorage = (typeof window.storage !== 'undefined') && window.storage && typeof window.storage.get === 'function';
+
+async function storageGet(key){
+  if(hasCloudStorage){
+    try{ return await window.storage.get(key, true); }
+    catch(e){ return null; }
+  }
+  try{
+    const raw = localStorage.getItem(key);
+    return raw ? { key, value: raw, shared: false } : null;
+  }catch(e){ return null; }
+}
+
+async function storageSet(key, value){
+  if(hasCloudStorage){
+    try{ return await window.storage.set(key, value, true); }
+    catch(e){ return null; }
+  }
+  try{
+    localStorage.setItem(key, value);
+    return { key, value, shared: false };
+  }catch(e){ return null; }
+}
+
+let state = null;
+let saveTimer = null;
+
+function pad(n){ return String(n).padStart(2,'0'); }
+function uid(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+// ---- GMT-3 time helpers ----
+function gmt3Now(){ return new Date(Date.now() - 3*3600*1000); }
+function dailyPeriodId(){
+  const d = gmt3Now();
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`;
+}
+function weeklyPeriodId(){
+  // period changes right after Thursday 23:59:59 GMT-3, i.e. the "week" is identified by the most recent Friday (GMT-3)
+  const d = gmt3Now();
+  const day = d.getUTCDay(); // 0 Sun .. 6 Sat (in shifted/GMT-3 reading)
+  const diff = (day - 5 + 7) % 7; // days since last Friday
+  const friday = new Date(d.getTime() - diff*24*3600*1000);
+  return `${friday.getUTCFullYear()}-${pad(friday.getUTCMonth()+1)}-${pad(friday.getUTCDate())}`;
+}
+function nextDailyResetUTC(now){
+  // 00:00 GMT-3 == 03:00 UTC
+  let d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 3,0,0,0));
+  if(d <= now) d = new Date(d.getTime() + 24*3600*1000);
+  return d;
+}
+function nextWeeklyResetUTC(now){
+  // Thursday 23:59:59 GMT-3 == Friday 02:59:59 UTC
+  let d = new Date(now);
+  d.setUTCHours(2,59,59,0);
+  const day = d.getUTCDay();
+  let diff = (5 - day + 7) % 7;
+  d = new Date(d.getTime() + diff*24*3600*1000);
+  if(d <= now) d = new Date(d.getTime() + 7*24*3600*1000);
+  return d;
+}
+
+function defaultState(){
+  const foxyEvents = DEFAULT_FOXY_EVENTS.map(e => ({...e}));
+  const annivEvents = DEFAULT_ANNIV_EVENTS.map(e => ({...e}));
+  const allIds = [...foxyEvents, ...annivEvents].map(e => e.id);
+  return {
+    foxyEvents,
+    annivEvents,
+    rows: [
+      mkRow('Ymir Fritz', 16, allIds),
+      mkRow('Ungrateful', 16, allIds),
+      mkRow('Rowlek', 12, allIds),
+      mkRow('Kuroky', 8, allIds),
+      mkRow('Carthage', 8, allIds),
+      mkRow('Africanow', 0, allIds),
+    ],
+    dailyPeriodId: dailyPeriodId(),
+    weeklyPeriodId: weeklyPeriodId(),
+  };
+}
+function mkRow(name, set, ids){
+  const checks = {};
+  (ids || []).forEach(k => checks[k]=false);
+  return { id: uid(), name, set, checks };
+}
+function allEventIds(){
+  return [...state.foxyEvents.map(e=>e.id), ...state.annivEvents.map(e=>e.id)];
+}
+function slugify(text){
+  return (text||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'evento';
+}
+function addEvent(group){
+  const label = prompt(group === 'foxy' ? 'Nome do novo evento do FOXY:' : 'Nome do novo evento do ANIVERSÁRIO:');
+  if(!label || !label.trim()) return;
+  const base = slugify(label);
+  let id = base, n = 1;
+  const existing = new Set(allEventIds());
+  while(existing.has(id)){ id = `${base}-${++n}`; }
+  const list = group === 'foxy' ? state.foxyEvents : state.annivEvents;
+  list.push({ id, label: label.trim() });
+  state.rows.forEach(r => { r.checks[id] = false; });
+  render();
+  saveState(false);
+}
+function removeEvent(group, id, label){
+  if(!confirm(`Remover o evento "${label}"? Isso vai apagar os checks marcados dele em todas as pessoas.`)) return;
+  if(group === 'foxy'){ state.foxyEvents = state.foxyEvents.filter(e => e.id !== id); }
+  else { state.annivEvents = state.annivEvents.filter(e => e.id !== id); }
+  state.rows.forEach(r => { delete r.checks[id]; });
+  render();
+  saveState(false);
+}
+
+function applyResetsIfNeeded(st){
+  let changed = false;
+  const curDaily = dailyPeriodId();
+  const curWeekly = weeklyPeriodId();
+  if(st.dailyPeriodId !== curDaily){
+    st.rows.forEach(r => st.annivEvents.forEach(e => r.checks[e.id]=false));
+    st.dailyPeriodId = curDaily;
+    changed = true;
+  }
+  if(st.weeklyPeriodId !== curWeekly){
+    st.rows.forEach(r => st.foxyEvents.forEach(e => r.checks[e.id]=false));
+    st.weeklyPeriodId = curWeekly;
+    changed = true;
+  }
+  return changed;
+}
+
+async function loadState(){
+  setStatus('Carregando...');
+  try{
+    const res = await storageGet(STORAGE_KEY);
+    state = res && res.value ? JSON.parse(res.value) : defaultState();
+  }catch(e){
+    state = defaultState();
+  }
+  // migração: dados salvos numa versão anterior não tinham listas de eventos dinâmicas
+  if(!Array.isArray(state.foxyEvents) || !Array.isArray(state.annivEvents)){
+    state.foxyEvents = DEFAULT_FOXY_EVENTS.map(e => ({...e}));
+    state.annivEvents = DEFAULT_ANNIV_EVENTS.map(e => ({...e}));
+  }
+  const changed = applyResetsIfNeeded(state);
+  render();
+  if(changed) await saveState(true);
+  setStatus('');
+}
+
+async function saveState(immediate){
+  setStatus('Salvando...');
+  clearTimeout(saveTimer);
+  const doSave = async () => {
+    try{
+      const result = await storageSet(STORAGE_KEY, JSON.stringify(state));
+      setStatus(result ? '' : 'Falha ao salvar.');
+    }catch(e){
+      setStatus('Falha ao salvar.');
+    }
+  };
+  if(immediate){ await doSave(); }
+  else { saveTimer = setTimeout(doSave, 300); }
+}
+
+function setStatus(msg){
+  document.getElementById('status').textContent = msg;
+}
+
+function render(){
+  renderHead();
+  renderBody();
+}
+
+function renderHead(){
+  const thead = document.getElementById('tableHead');
+  thead.innerHTML = '';
+
+  const groupRow = document.createElement('tr');
+  groupRow.className = 'group-row';
+  groupRow.appendChild(document.createElement('th')).colSpan = 2;
+
+  const thFoxy = document.createElement('th');
+  thFoxy.colSpan = state.foxyEvents.length;
+  thFoxy.className = 'grp-foxy';
+  const foxyLabelWrap = document.createElement('span');
+  foxyLabelWrap.className = 'grp-label';
+  foxyLabelWrap.innerHTML = '<span>FOXY</span>';
+  const foxyAddBtn = document.createElement('button');
+  foxyAddBtn.className = 'add-event-btn';
+  foxyAddBtn.textContent = '+';
+  foxyAddBtn.title = 'Adicionar evento no FOXY';
+  foxyAddBtn.addEventListener('click', () => addEvent('foxy'));
+  foxyLabelWrap.appendChild(foxyAddBtn);
+  thFoxy.appendChild(foxyLabelWrap);
+  groupRow.appendChild(thFoxy);
+
+  const thAnniv = document.createElement('th');
+  thAnniv.colSpan = state.annivEvents.length;
+  thAnniv.className = 'grp-anniv';
+  const annivLabelWrap = document.createElement('span');
+  annivLabelWrap.className = 'grp-label';
+  annivLabelWrap.innerHTML = '<span>EVENTO ANIVERSÁRIO</span>';
+  const annivAddBtn = document.createElement('button');
+  annivAddBtn.className = 'add-event-btn';
+  annivAddBtn.textContent = '+';
+  annivAddBtn.title = 'Adicionar evento no ANIVERSÁRIO';
+  annivAddBtn.addEventListener('click', () => addEvent('anniv'));
+  annivLabelWrap.appendChild(annivAddBtn);
+  thAnniv.appendChild(annivLabelWrap);
+  groupRow.appendChild(thAnniv);
+
+  groupRow.appendChild(document.createElement('th'));
+  thead.appendChild(groupRow);
+
+  const colRow = document.createElement('tr');
+  colRow.className = 'col-row';
+  const thName = document.createElement('th');
+  thName.className = 'name-col'; thName.textContent = 'Nome';
+  colRow.appendChild(thName);
+  const thSet = document.createElement('th');
+  thSet.className = 'set-col'; thSet.textContent = 'Set';
+  colRow.appendChild(thSet);
+
+  state.foxyEvents.forEach((ev, i) => colRow.appendChild(makeColHeader(ev, 'foxy', i, state.foxyEvents.length)));
+  state.annivEvents.forEach((ev, i) => colRow.appendChild(makeColHeader(ev, 'anniv', i, state.annivEvents.length)));
+
+  colRow.appendChild(document.createElement('th'));
+  thead.appendChild(colRow);
+}
+
+function makeColHeader(ev, group, index, total){
+  const th = document.createElement('th');
+  const wrap = document.createElement('span');
+  wrap.className = 'col-label-wrap';
+
+  const leftBtn = document.createElement('button');
+  leftBtn.className = 'reorder-btn';
+  leftBtn.textContent = '◀';
+  leftBtn.title = 'Mover para a esquerda';
+  leftBtn.disabled = index === 0;
+  leftBtn.addEventListener('click', () => moveEvent(group, index, index - 1));
+  wrap.appendChild(leftBtn);
+
+  const label = document.createElement('span');
+  label.className = 'col-label';
+  label.textContent = ev.label;
+  label.title = 'Clique para renomear';
+  label.addEventListener('click', () => renameEvent(group, ev.id, ev.label));
+  wrap.appendChild(label);
+
+  const rightBtn = document.createElement('button');
+  rightBtn.className = 'reorder-btn';
+  rightBtn.textContent = '▶';
+  rightBtn.title = 'Mover para a direita';
+  rightBtn.disabled = index === total - 1;
+  rightBtn.addEventListener('click', () => moveEvent(group, index, index + 1));
+  wrap.appendChild(rightBtn);
+
+  const rm = document.createElement('button');
+  rm.className = 'remove-event-btn';
+  rm.textContent = '✕';
+  rm.title = 'Remover evento';
+  rm.addEventListener('click', () => removeEvent(group, ev.id, ev.label));
+  wrap.appendChild(rm);
+
+  th.appendChild(wrap);
+  return th;
+}
+
+function moveEvent(group, fromIndex, toIndex){
+  const list = group === 'foxy' ? state.foxyEvents : state.annivEvents;
+  if(toIndex < 0 || toIndex >= list.length) return;
+  const [item] = list.splice(fromIndex, 1);
+  list.splice(toIndex, 0, item);
+  render();
+  saveState(false);
+}
+
+function renameEvent(group, id, currentLabel){
+  const label = prompt('Novo nome do evento:', currentLabel);
+  if(!label || !label.trim() || label.trim() === currentLabel) return;
+  const list = group === 'foxy' ? state.foxyEvents : state.annivEvents;
+  const ev = list.find(e => e.id === id);
+  if(ev){ ev.label = label.trim(); }
+  render();
+  saveState(false);
+}
+
+function renderBody(){
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  const eventIds = allEventIds();
+  const annivIds = new Set(state.annivEvents.map(e=>e.id));
+
+  state.rows.forEach(row => {
+    const tr = document.createElement('tr');
+
+    const tdName = document.createElement('td');
+    tdName.style.textAlign = 'left';
+    const nameInput = document.createElement('input');
+    nameInput.className = 'name-input';
+    nameInput.value = row.name;
+    nameInput.placeholder = 'nome';
+    nameInput.addEventListener('input', () => { row.name = nameInput.value; saveState(false); });
+    tdName.appendChild(nameInput);
+    tr.appendChild(tdName);
+
+    const tdSet = document.createElement('td');
+    tdSet.style.textAlign = 'left';
+    const setWrap = document.createElement('div');
+    setWrap.className = 'set-cell';
+    const minusBtn = document.createElement('button');
+    minusBtn.className = 'set-btn'; minusBtn.textContent = '−';
+    minusBtn.addEventListener('click', () => { row.set = Math.max(0, (row.set||0)-1); setBadge.textContent = row.set; saveState(false); });
+    const setBadge = document.createElement('span');
+    setBadge.className = 'set-badge'; setBadge.textContent = row.set;
+    const plusBtn = document.createElement('button');
+    plusBtn.className = 'set-btn'; plusBtn.textContent = '+';
+    plusBtn.addEventListener('click', () => { row.set = (row.set||0)+1; setBadge.textContent = row.set; saveState(false); });
+    setWrap.appendChild(minusBtn); setWrap.appendChild(setBadge); setWrap.appendChild(plusBtn);
+    tdSet.appendChild(setWrap);
+    tr.appendChild(tdSet);
+
+    eventIds.forEach(key => {
+      const td = document.createElement('td');
+      if(annivIds.has(key)) td.className = 'anniv-check';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!row.checks[key];
+      cb.addEventListener('change', () => { row.checks[key] = cb.checked; saveState(false); });
+      td.appendChild(cb);
+      tr.appendChild(td);
+    });
+
+    const tdDel = document.createElement('td');
+    const delBtn = document.createElement('button');
+    delBtn.className = 'del-btn';
+    delBtn.textContent = '✕';
+    delBtn.title = 'remover';
+    delBtn.addEventListener('click', () => {
+      state.rows = state.rows.filter(r => r.id !== row.id);
+      render();
+      saveState(false);
+    });
+    tdDel.appendChild(delBtn);
+    tr.appendChild(tdDel);
+
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('addBtn').addEventListener('click', () => {
+  state.rows.push(mkRow('', 0, allEventIds()));
+  render();
+  saveState(false);
+});
+
+// ---- backup: exportar / importar ----
+function exportBackup(){
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    ...state
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const g = gmt3Now();
+  a.href = url;
+  a.download = `arcade-tracker-backup-${g.getUTCFullYear()}-${pad(g.getUTCMonth()+1)}-${pad(g.getUTCDate())}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importBackup(file){
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!Array.isArray(data.rows)) throw new Error('formato inválido');
+      const foxyEvents = Array.isArray(data.foxyEvents) && data.foxyEvents.length
+        ? data.foxyEvents : DEFAULT_FOXY_EVENTS.map(e=>({...e}));
+      const annivEvents = Array.isArray(data.annivEvents) && data.annivEvents.length
+        ? data.annivEvents : DEFAULT_ANNIV_EVENTS.map(e=>({...e}));
+      const ids = [...foxyEvents, ...annivEvents].map(e=>e.id);
+      state = {
+        foxyEvents,
+        annivEvents,
+        rows: data.rows.map(r => {
+          const checks = {};
+          ids.forEach(id => { checks[id] = !!(r.checks && r.checks[id]); });
+          return {
+            id: r.id || uid(),
+            name: r.name || '',
+            set: Number(r.set) || 0,
+            checks,
+          };
+        }),
+        dailyPeriodId: data.dailyPeriodId || dailyPeriodId(),
+        weeklyPeriodId: data.weeklyPeriodId || weeklyPeriodId(),
+      };
+      applyResetsIfNeeded(state);
+      render();
+      await saveState(true);
+      setStatus('Backup importado com sucesso.');
+      setTimeout(() => setStatus(''), 2500);
+    }catch(err){
+      setStatus('Arquivo de backup inválido.');
+      setTimeout(() => setStatus(''), 2500);
+    }
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('exportBtn').addEventListener('click', exportBackup);
+document.getElementById('importBtn').addEventListener('click', () => {
+  document.getElementById('importFile').click();
+});
+document.getElementById('importFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(file) importBackup(file);
+  e.target.value = '';
+});
+
+// ---- date label & countdowns ----
+function updateClock(){
+  const now = new Date();
+  const g = gmt3Now();
+  document.getElementById('todayLabel').textContent = `${pad(g.getUTCDate())}/${pad(g.getUTCMonth()+1)}/${g.getUTCFullYear()}`;
+  document.getElementById('clockLabel').textContent = `${pad(g.getUTCHours())}:${pad(g.getUTCMinutes())}:${pad(g.getUTCSeconds())}`;
+
+  const weekly = nextWeeklyResetUTC(now) - now;
+  const daily = nextDailyResetUTC(now) - now;
+
+  const wd = Math.floor(weekly/86400000);
+  const wh = Math.floor((weekly%86400000)/3600000);
+  const wm = Math.floor((weekly%3600000)/60000);
+  document.getElementById('foxy-d').textContent = wd+'d';
+  document.getElementById('foxy-h').textContent = pad(wh)+'h';
+  document.getElementById('foxy-m').textContent = pad(wm)+'m';
+
+  const ah = Math.floor(daily/3600000);
+  const am = Math.floor((daily%3600000)/60000);
+  const as = Math.floor((daily%60000)/1000);
+  document.getElementById('anniv-h').textContent = pad(ah)+'h';
+  document.getElementById('anniv-m').textContent = pad(am)+'m';
+  document.getElementById('anniv-s').textContent = pad(as)+'s';
+
+  // if a reset boundary was just crossed, re-check periods
+  if(state){
+    const changed = applyResetsIfNeeded(state);
+    if(changed){ render(); saveState(true); }
+  }
+}
+
+loadState();
+setInterval(updateClock, 1000);
+updateClock();
+</script>
+</body>
+</html>
