@@ -195,7 +195,7 @@
     <div class="badges">
       <div class="date-badge">Hoje · <b id="todayLabel">--/--/----</b></div>
       <div class="date-badge">🕒 <b id="clockLabel">--:--:--</b></div>
-      <div class="date-badge view-badge">👁 <b id="viewsLabel">0</b></div>
+      <div class="date-badge view-badge">👁 <b id="onlineLabel">1</b> online</div>
     </div>
   </div>
 
@@ -325,16 +325,15 @@ function defaultState(){
     foxyEvents,
     annivEvents,
     rows: [
-      mkRow('Nome 1', 16, allIds),
-      mkRow('Nome 2', 16, allIds),
-      mkRow('Nome 3', 12, allIds),
-      mkRow('Nome 4', 8, allIds),
-      mkRow('Nome 5', 8, allIds),
-      mkRow('Nome 6', 0, allIds),
+      mkRow('Conta 1', 0, allIds),
+      mkRow('Conta 2', 0, allIds),
+      mkRow('Conta 3', 0, allIds),
+      mkRow('Conta 4', 0, allIds),
+      mkRow('Conta 5', 0, allIds),
+      mkRow('Conta 6', 0, allIds),
     ],
     dailyPeriodId: dailyPeriodId(),
     weeklyPeriodId: weeklyPeriodId(),
-    views: 0,
   };
 }
 function mkRow(name, set, ids){
@@ -401,13 +400,10 @@ async function loadState(){
     state.foxyEvents = DEFAULT_FOXY_EVENTS.map(e => ({...e}));
     state.annivEvents = DEFAULT_ANNIV_EVENTS.map(e => ({...e}));
   }
-  if(typeof state.views !== 'number'){ state.views = 0; }
-  state.views += 1;
-  document.getElementById('viewsLabel').textContent = state.views;
 
   const changed = applyResetsIfNeeded(state);
   render();
-  await saveState(true);
+  if(changed) await saveState(true);
   setStatus('');
 }
 
@@ -721,6 +717,33 @@ function updateClock(){
 loadState();
 setInterval(updateClock, 1000);
 updateClock();
+
+// ---- usuários online (presença via heartbeat com expiração) ----
+const ONLINE_KEY = 'arcade-tracker-online-v1';
+const ONLINE_TTL_MS = 45000;       // considera offline se não pulsar por 45s
+const HEARTBEAT_INTERVAL_MS = 15000;
+const sessionId = uid();
+
+async function heartbeatOnline(){
+  try{
+    const res = await storageGet(ONLINE_KEY);
+    let map = {};
+    if(res && res.value){
+      try{ map = JSON.parse(res.value); }catch(e){ map = {}; }
+    }
+    const now = Date.now();
+    map[sessionId] = now;
+    Object.keys(map).forEach(id => {
+      if(now - map[id] > ONLINE_TTL_MS) delete map[id];
+    });
+    await storageSet(ONLINE_KEY, JSON.stringify(map));
+    const el = document.getElementById('onlineLabel');
+    if(el) el.textContent = Object.keys(map).length;
+  }catch(e){ /* ignora falha silenciosamente */ }
+}
+
+heartbeatOnline();
+setInterval(heartbeatOnline, HEARTBEAT_INTERVAL_MS);
 </script>
 </body>
 </html>
