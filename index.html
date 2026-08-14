@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Arcade Tracker</title>
-<link rel="icon" type="image/png" href="/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -38,6 +37,7 @@
   .badges{
     display:flex;gap:10px;margin-right:60px;flex-wrap:wrap;
   }
+  .view-badge{opacity:0.5;}
   .kicker{
     font-size:10px;color:var(--pink);letter-spacing:2px;margin-bottom:10px;
     text-shadow:0 0 8px var(--pink-glow);
@@ -195,6 +195,7 @@
     <div class="badges">
       <div class="date-badge">Hoje · <b id="todayLabel">--/--/----</b></div>
       <div class="date-badge">🕒 <b id="clockLabel">--:--:--</b></div>
+      <div class="date-badge view-badge">👁 <b id="viewsLabel">0</b></div>
     </div>
   </div>
 
@@ -248,8 +249,8 @@ const DEFAULT_ANNIV_EVENTS = [
   { id:'math', label:'Math' },
   { id:'parry', label:'Parry' },
   { id:'mole', label:'Mole' },
-  { id:'shooting', label:'Shoot' },
-  { id:'pacman', label:'Pac-Man' },
+  { id:'shooting', label:'Shooting' },
+  { id:'pacman', label:'Pac Man' },
 ];
 const STORAGE_KEY = 'arcade-tracker-state-v1';
 
@@ -333,6 +334,7 @@ function defaultState(){
     ],
     dailyPeriodId: dailyPeriodId(),
     weeklyPeriodId: weeklyPeriodId(),
+    views: 0,
   };
 }
 function mkRow(name, set, ids){
@@ -399,9 +401,13 @@ async function loadState(){
     state.foxyEvents = DEFAULT_FOXY_EVENTS.map(e => ({...e}));
     state.annivEvents = DEFAULT_ANNIV_EVENTS.map(e => ({...e}));
   }
+  if(typeof state.views !== 'number'){ state.views = 0; }
+  state.views += 1;
+  document.getElementById('viewsLabel').textContent = state.views;
+
   const changed = applyResetsIfNeeded(state);
   render();
-  if(changed) await saveState(true);
+  await saveState(true);
   setStatus('');
 }
 
